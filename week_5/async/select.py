@@ -18,7 +18,7 @@ conn2.setblocking(0)
 # Как узнать какие сокеты готовы читать данные, а какие готовы записывать? Для этого воспользуемся epoll
 epoll = select.epoll()  # Создаем объект epoll
 epoll.register(conn1.fileno(), select.EPOLLIN | select.EPOLLOUT)    # Регистрируем в объекте epoll наши
-epoll.register(conn2.fileno(), select.EPOLLIN | select.EPOLLOUT)    # файловые диискрипторы
+epoll.register(conn2.fileno(), select.EPOLLIN | select.EPOLLOUT)    # файловые дискрипторы (.fileno()) и маску(.EPOLLIN)
 
 conn_map = {
     conn1.fileno(): conn1,
