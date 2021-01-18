@@ -11,21 +11,23 @@ class Client:
     def __init__(self, ip_addr, host, timeout=None):
         self._sock = self.__connect(ip_addr, host, timeout)
 
-    def __connect(self, ip, host, timeout):
-        sock = socket.create_connection((ip, host), timeout)
-        return sock
+    def __create_request(self):
+
+        pass
+
+    def __parse_response(self):
+        return self._sock.recv(1024).decode('utf-8').split('\n')
 
     def get(self, metrics_name):
         data = f'get {metrics_name}\n'
         self._sock.send(data.encode('utf-8'))
 
-        result = self._sock.recv(1024).decode('utf-8').split('\n')
-        # self._sock.close()
+        response = self.__parse_response()
 
-        if not self.response_is_valid(result):
+        if not self.response_is_valid(response):
             raise ClientError
 
-        result = result[1:-2]
+        result = response[1:-2]
         answer = {}
 
         if metrics_name == '*':
@@ -49,11 +51,19 @@ class Client:
     def put(self, metrics_name, value, timestamp=None):
         if timestamp is None:
             timestamp = int(time.time())
+
         data = f'put {metrics_name} {value} {timestamp}\n'
+
         self._sock.send(data.encode('utf-8'))
-        response = self._sock.recv(1024).decode('utf-8').split('\n')
+
+        response = self.__parse_response()
         if not self.response_is_valid(response):
             raise ClientError
+
+    @staticmethod
+    def __connect(ip, host, timeout):
+        sock = socket.create_connection((ip, host), timeout)
+        return sock
 
     @staticmethod
     def response_is_valid(data: list):
@@ -76,7 +86,6 @@ class Client:
                 if value[2] in ['not_timestamp']:
                     return False
             return True
-
 
 
 if __name__ == '__main__':
