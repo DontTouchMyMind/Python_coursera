@@ -88,11 +88,11 @@ class Client:
 
 
 if __name__ == '__main__':
-    client = Client('127.0.0.1', 8888, 15)
+    client = Client('127.0.0.1', 8181, 15)
     print(client.get('palm.cpu'))
     client.put("palm.cpu", 2.0, timestamp=1150864248)
-    client.put("palm.cpu", 0.5, timestamp=1150864247)
     client.put("palm.cpu", 0.5, timestamp=1150864248)
-    client.put("eardrum.memory", 4200000)
+    client.put("palm.cpu", 1.5, timestamp=1150864248)
+    client.put("eardrum.memory", 4)
     print(client.get('palm.cpu'))
     print(client.get('*'))
