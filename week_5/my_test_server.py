@@ -12,6 +12,8 @@ with socket.socket() as sock:
         print('Соединение установлено:', addr)
 
         response = b'ok\npalm.cpu 10.5 1501864247\npalm.cpu 0.5 1150864248\neardrum.cpu 15.3 1501864259\n\n'
+        response_1 = b'ok\n\n'
+        response_2 = b'ok\nblablabla\n\n'
 
         while True:
             data = conn.recv(1024)
