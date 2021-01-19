@@ -3,6 +3,10 @@ import time
 
 
 class ClientError(BaseException):
+    """
+    Исключение выбрасывается в случае не успешного получения ответа от сервера(wrong command) - get
+
+    """
     pass
 
 
@@ -44,7 +48,7 @@ class Client:
                 if i.find(metrics_name) == 0:
                     lst = i.split()
                     answer[metrics_name].append((int(lst[2]), float(lst[1])))
-            if not answer[metrics_name]:
+            if not answer[metrics_name]:    # Это должно происходить при ответе ok\n\n
                 answer = {}
             return answer
 
@@ -73,17 +77,30 @@ class Client:
             'temperature',
             ''
         ]
+        # Ответ ok\n\n должен быть верным
+        # Обработка ответа error\nwrong command\n\n
+        # случай, когда строка ответа сервера содержит кроме ожидаемого содержания и другую текстовую информацию.
+        # Пример такого ответа: "some_text\nok\n\n". Какие варианты неправильных ответов еще могут быть,
+        # вы можете подумать самостоятельно.
+
+        # Поскольку клиент (при его нормальной реализации) всегда отправляет валидные запросы,
+        # ожидаемый ответ сервера должен всегда иметь статус ответа "ok".
+        # Проверять необходимо не только поле статуса ответа, но и другие поля.
+        # Например: на наличие необходимых полей или "лишних" в данных,
+        # на возможность привести данные к нужному типу и т.д. Так же не стоит забывать про ответ сервера в ситуации,
+        # когда данные по ключу на сервере отсутствует "ok\n\n"
+        # (такой ответ считается валидным и клиент должен возвращать пустой словарь).
         if data[0] != 'ok':
             return False
         else:
             data = data[1:-2]
             for d in data:
                 value = d.split()
-                if value[0] not in metrics_list:
+                if value[0] not in metrics_list:    #
                     return False
-                if value[1] in ['not_value']:
+                if value[1] in ['not_value']:   # is int or float
                     return False
-                if value[2] in ['not_timestamp']:
+                if value[2] in ['not_timestamp']:   # is int
                     return False
             return True
 
