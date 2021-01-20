@@ -16,12 +16,8 @@ def run_server(host, port):
 
 
 class ClientServerProtocol(asyncio.Protocol):
-    storage = {
-        'palm.cpu': [(
-            10.5,
-            1501864247
-        )]
-    }
+
+    storage = {}
 
     def connection_made(self, transport):
         peername = transport.get_extra_info('peername')
@@ -29,19 +25,18 @@ class ClientServerProtocol(asyncio.Protocol):
         self.transport = transport
 
     def data_received(self, data):
-        message = data.decode('utf-8')  # Полученные данные
+        message = data.decode('utf-8')
         print(f'Data recieved: {message}')
         message = self._parse_input_data(data.decode('utf-8'))
         if not self._response_is_valid(message):
             response = b'error\nwrong command\n\n'
         else:
             if message[0] == 'get':
-                response = self._get_data()     # -> b'ok\npalm.cpu 10.5 1501864247\n\n'
-                # b'ok\npalm.cpu 10.5 1501864247\npalm.cpu 0.5 1150864248\neardrum.cpu 15.3 1501864259\n\n'
+                response = self._get_data(message)
+
             elif message[0] == 'put':
-                response = self._save_data(message)    # -> b'ok\n\n'
+                response = self._save_data(message)
             else:
-                # print(message)
                 pass    # -> b'error\nwrong command\n\n'
 
         print(f'Send: {response}')
@@ -53,20 +48,32 @@ class ClientServerProtocol(asyncio.Protocol):
             input_data.append(int(time.time()))
         if input_data[1] in self.storage.keys():
             for data in self.storage[input_data[1]]:
-                if data[1] == input_data[3]:
+                if data[1] == int(input_data[3]):
                     self.storage[input_data[1]].remove(data)
-                    self.storage[input_data[1]].append((input_data[2], input_data[3]))
+                    self.storage[input_data[1]].append((float(input_data[2]), int(input_data[3])))
                     break
             else:
-                self.storage[input_data[1]].append((input_data[2], input_data[3]))
+                self.storage[input_data[1]].append((float(input_data[2]), int(input_data[3])))
         else:
-            self.storage[input_data[1]] = [(input_data[2], input_data[3])]
-        print(self.storage)     # ! ->test!
+            self.storage[input_data[1]] = [(float(input_data[2]), int(input_data[3]))]
+
         return b'ok\n\n'
 
-    def _get_data(self) -> bytes:
+    def _get_data(self, input_data: list) -> bytes:
         """Метод считывает данные с сервера"""
-        return b'ok\npalm.cpu 10.5 1501864247\n\n'
+        if input_data[1] != '*' and input_data[1] not in self.storage:
+            return b'ok\n\n'
+        response = 'ok\n'
+        if input_data[1] == '*':
+            for keys, values in self.storage.items():
+                for value in values:
+                    response += f'{keys} {value[0]} {value[1]}\n'
+        else:
+            for data in self.storage[input_data[1]]:
+                response += f'{input_data[1]} {data[0]} {data[1]}\n'
+        response += f'\n'
+        response = bytes(response, encoding='utf-8')
+        return response
 
     @staticmethod
     def _parse_input_data(data: str) -> list:
@@ -82,11 +89,17 @@ class ClientServerProtocol(asyncio.Protocol):
         if data[0] == 'put':                        # При запросе put,
             if len(data) != 3 and len(data) != 4:   # длина равна 3(4)['get', 'metrics_name', 'value', 'timestamp=None']
                 return False
+            try:
+                float(data[2])
+                int(data[3])
+            except ValueError:
+                return False
         elif data[0] == 'get':  # При запросе get,
             if len(data) != 2:  # длина комманды должна быть = 2, ['get', 'metrics_name']
                 return False
         else:
             return False
+
         return True
 
 
