@@ -6,6 +6,7 @@ import pygame
 
 class Vec2d:
     """2-мерный вектор."""
+
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -26,6 +27,9 @@ class Vec2d:
         """Возвращает кортеж из двух целых чисел."""
         return int(self.x), int(self.y)
 
+    def float_pair(self):
+        return float(self.x), float(self.y)
+
 
 class Polyline:
     def __init__(self, points, speeds):
@@ -37,14 +41,14 @@ class Polyline:
         for p in range(len(self.points)):
             self.points[p] = self.points[p] + self.speeds[p]
 
-            points = self.points[p].int_pair()
-            speeds = self.speeds[p].int_pair()
+            points = self.points[p].float_pair()
+            speeds = self.speeds[p].float_pair()
 
             if points[0] > screen_dim[0] or points[0] < 0:
                 self.speeds[p] = Vec2d(-speeds[0], speeds[1])
 
-            if points[1] > screen_dim[0] or points[1] < 0:
-                self.speeds[p] = Vec2d(speeds[0], -speeds[0])
+            if points[1] > screen_dim[1] or points[1] < 0:
+                self.speeds[p] = Vec2d(speeds[0], -speeds[1])
 
     def draw_points(self, style="points", width=3, color=(255, 255, 255)):
         """функция отрисовки на экране"""
@@ -62,22 +66,19 @@ class Polyline:
                 pygame.draw.circle(
                     gameDisplay,
                     color,
-                    # (p[0].int_pair(), p[1].int_pair()),
                     p.int_pair(),
                     width
                 )
 
 
 class Knot(Polyline):
-    # def __init__(self, points, speeds):
-    #     super().__init__(points, speeds)
 
     def get_point(self, points, alpha, deg=None):
         if deg is None:
             deg = len(points) - 1
         if deg == 0:
             return points[0]
-        return (points[deg] * alpha) + (self.get_point(points, alpha, deg-1) * (1 - alpha))
+        return (points[deg] * alpha) + (self.get_point(points, alpha, deg - 1) * (1 - alpha))
 
     def get_points(self, base_points, count):
         alpha = 1 / count
@@ -87,20 +88,21 @@ class Knot(Polyline):
         return res
 
     def get_knot(self, count):
-        if len(points) < 3:
+        if len(self.points) < 3:
             return []
         res = []
-        for i in range(-2, len(points) - 2):
+        for i in range(-2, len(self.points) - 2):
             ptn = []
-            ptn.append((points[i] + points[i + 1]) * 0.5)
-            ptn.append(points[i + 1])
-            ptn.append((points[i + 1] + points[i + 2]) * 0.5)
+            ptn.append((self.points[i] + self.points[i + 1]) * 0.5)
+            ptn.append(self.points[i + 1])
+            ptn.append((self.points[i + 1] + self.points[i + 2]) * 0.5)
 
             res.extend(self.get_points(ptn, count))
         return res
 
 
 SCREEN_DIM = (800, 600)
+
 
 def draw_help():
     """функция отрисовки экрана справки программы"""
@@ -115,6 +117,11 @@ def draw_help():
     data.append(["Num-", "Less points"])
     data.append(["", ""])
     data.append([str(steps), "Current points"])
+    data.append(["", ""])
+    data.append(["LClick", "Add point"])
+    data.append(["RClick", "Delete point"])
+    data.append(["UP", "Increase speed"])
+    data.append(["DOWN", "Decrease speed"])
 
     pygame.draw.lines(gameDisplay, (255, 50, 50, 255), True, [
         (0, 0), (800, 0), (800, 600), (0, 600)], 5)
@@ -161,12 +168,23 @@ if __name__ == "__main__":
                     show_help = not show_help
                 if event.key == pygame.K_KP_MINUS:
                     steps -= 1 if steps > 1 else 0
+                if event.key == pygame.K_DOWN:
+                    for i, _ in enumerate(speeds):
+                        speeds[i] *= 0.9
+                if event.key == pygame.K_UP:
+                    for i, _ in enumerate(speeds):
+                        speeds[i] *= 1.2
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                points.append(Vec2d(event.pos[0], event.pos[1]))
-                speeds.append(Vec2d(random.random() * 2, random.random() * 2))
-                # points.append(event.pos)
-                # speeds.append((random.random() * 2, random.random() * 2))
+                if event.button == pygame.BUTTON_LEFT:
+                    points.append(Vec2d(event.pos[0], event.pos[1]))
+                    speeds.append(Vec2d(random.random() * 2, random.random() * 2))
+                elif event.button == pygame.BUTTON_RIGHT:
+                    for i, _ in enumerate(points):
+                        point = points[i].int_pair()
+                        del points[i]
+                        del speeds[i]
+                        break
 
         gameDisplay.fill((0, 0, 0))
         hue = (hue + 1) % 360
@@ -177,8 +195,6 @@ if __name__ == "__main__":
         polyline.points = knot.get_knot(steps)
         polyline.draw_points(style='line', color=color)
         polyline.points = points
-        # draw_points(points)
-        # draw_points(get_knot(points, steps), "line", 3, color)
         if not pause:
             polyline.set_points(SCREEN_DIM)
         if show_help:
